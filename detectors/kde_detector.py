@@ -1,0 +1,122 @@
+from sklearn.neighbors import KernelDensity
+import numpy as np
+import pandas as pd
+
+class FeaturewiseKDENoveltyDetector:
+    def __init__(self,
+                 df,
+                 feature_col="avg_4gsnr",
+                 time_col="hour",
+                 bandwidth=0.5,
+                 train_idx="all",
+                 new_idx="all",
+                 filter_percentile=100,
+                 threshold_percentile=99,
+                 anomaly_direction="low"):
+        """
+        Parameters:
+            df (pd.DataFrame): Input data.
+            feature_col (str): Column containing values to evaluate.
+            time_col (str): Time column for plotting.
+            bandwidth (float): Bandwidth for KDE.
+            train_idx (slice, list, int, or "all"): Indices for training data. "all" uses the entire DataFrame.
+            new_idx (slice, list, int, or "all"): Indices for test data. "all" uses the entire DataFrame.
+            filter_percentile (float): Percentile for filtering out high-end outliers in training set.
+            threshold_percentile (float): Percentile to apply directional outlier threshold.
+            anomaly_direction (str): One of {"both", "high", "low"} to control direction of anomaly detection.
+        Example Usage:
+        detector = FeaturewiseKDENoveltyDetector(
+                                                df=your_df,
+                                                feature_col="avg_5gsnr",
+                                                time_col="hour",
+                                                train_idx=slice(0, 1068),
+                                                new_idx=slice(-26, None),
+                                                filter_percentile = 100,
+                                                threshold_percentile=95,
+                                                anomaly_direction="both"  # can be "low", "high", or "both"
+                                                )
+        result = detector.fit()
+        """
+        self.df = df
+        self.feature_col = feature_col
+        self.time_col = time_col
+        self.bandwidth = bandwidth
+        self.train_idx = train_idx
+        self.new_idx = new_idx
+        self.filter_percentile = filter_percentile
+        self.threshold_percentile = threshold_percentile
+        self.anomaly_direction = anomaly_direction
+        self.kde = None
+        self.threshold = None
+        self.outlier_mask = None
+
+    def _filter_train_df(self, train_df):
+        """
+        Filters training data by removing extreme values from both directions
+        based on filter_percentile.
+        If filter_percentile < 100:
+            - Keeps the central filter_percentile% of the data.
+            - Example: 95 keeps 2.5% on each tail removed.
+        """
+        if self.filter_percentile < 100:
+            lower_p = (100 - self.filter_percentile) / 2
+            upper_p = 100 - lower_p
+            lower = np.percentile(train_df[self.feature_col], lower_p)
+            upper = np.percentile(train_df[self.feature_col], upper_p)
+            train_df = train_df[
+                (train_df[self.feature_col] >= lower) &
+                (train_df[self.feature_col] <= upper)
+            ]
+        return train_df
+
+    def fit(self):
+        # Handle "all" option for training and testing index
+        if self.train_idx == "all":
+            train_df = self.df.copy()
+        else:
+            train_df = self.df.iloc[self.train_idx]
+        train_df = self._filter_train_df(train_df)
+
+        if self.new_idx == "all":
+            new_df = self.df.copy()
+            new_indices = self.df.index
+        else:
+            new_df = self.df.iloc[self.new_idx]
+            new_indices = self.df.iloc[self.new_idx].index
+
+        # Fit KDE on training data
+        X_train = train_df[self.feature_col].values.reshape(-1, 1)
+        X_new = new_df[self.feature_col].values.reshape(-1, 1)
+
+        self.kde = KernelDensity(kernel='gaussian', bandwidth=self.bandwidth)
+        self.kde.fit(X_train)
+
+        # Compute densities
+        dens_train = np.exp(self.kde.score_samples(X_train))
+        self.threshold = np.quantile(dens_train, 0.01)
+
+        dens_new = np.exp(self.kde.score_samples(X_new))
+        outlier_mask_kde = dens_new < self.threshold
+
+        # Directional anomaly logic based on percentiles
+        new_values = new_df[self.feature_col].values
+        lower_threshold = np.percentile(train_df[self.feature_col], 100 - self.threshold_percentile)
+        upper_threshold = np.percentile(train_df[self.feature_col], self.threshold_percentile)
+
+        if self.anomaly_direction == "low":
+            direction_mask = new_values < lower_threshold
+        elif self.anomaly_direction == "high":
+            direction_mask = new_values > upper_threshold
+        else:  # both
+            direction_mask = (new_values < lower_threshold) | (new_values > upper_threshold)
+
+        # Final anomaly mask
+        final_outlier_mask = outlier_mask_kde & direction_mask
+        self.outlier_mask = final_outlier_mask
+
+        is_outlier_col = pd.Series(False, index=self.df.index)
+        is_outlier_col.loc[new_indices] = final_outlier_mask
+        self.df["is_outlier"] = is_outlier_col
+
+        return self.df[self.df["is_outlier"]][["sn", self.time_col, self.feature_col, "is_outlier"]]
+
