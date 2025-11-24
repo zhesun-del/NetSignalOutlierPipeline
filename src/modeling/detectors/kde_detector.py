@@ -1,6 +1,10 @@
 from sklearn.neighbors import KernelDensity
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import os
+import mlflow
+import matplotlib.pyplot as plt
 
 class FeaturewiseKDENoveltyDetector:
     def __init__(self,
@@ -119,4 +123,64 @@ class FeaturewiseKDENoveltyDetector:
         self.df["is_outlier"] = is_outlier_col
 
         return self.df[self.df["is_outlier"]][["sn", self.time_col, self.feature_col, "is_outlier"]]
+
+    def plot_line(self, sn_num=None):
+        fig = plt.figure(figsize=(10, 4))
+
+        plt.plot(self.df[self.time_col], self.df[self.feature_col], marker='o',
+                label=self.feature_col, alpha=0.6)
+
+        if "is_outlier" in self.df.columns:
+            df_outliers = self.df[self.df["is_outlier"]]
+            if not df_outliers.empty:
+                plt.scatter(df_outliers[self.time_col], df_outliers[self.feature_col],
+                            color='red', label='Outlier', zorder=5, s=60, marker='X')
+
+        title = f"{self.feature_col} Over Time"
+        if sn_num:
+            title += f" ({sn_num})"
+        plt.title(title)
+        plt.xlabel("Time")
+        plt.ylabel(self.feature_col)
+        plt.legend()
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.grid(True)
+
+        return fig
+
+    def plot_kde(self):
+        fig = plt.figure(figsize=(10, 5))
+
+        if self.train_idx == "all":
+            train_df = self.df.copy()
+        else:
+            train_df = self.df.iloc[self.train_idx]
+        train_df = self._filter_train_df(train_df)
+
+        if self.new_idx == "all":
+            new_df = self.df.copy()
+        else:
+            new_df = self.df.iloc[self.new_idx]
+
+        X_train = train_df[self.feature_col].values.reshape(-1, 1)
+        X_new = new_df[self.feature_col].values.reshape(-1, 1)
+
+        x_vals = np.linspace(X_train.min() - 1, X_train.max() + 1, 1000).reshape(-1, 1)
+        dens = np.exp(self.kde.score_samples(x_vals))
+
+        plt.plot(x_vals, dens, label="KDE Density Curve")
+        plt.axhline(self.threshold, color='red', linestyle='-.', label=f"Threshold ({100-self.threshold_percentile}%)")
+
+        for i, val in enumerate(X_new.flatten()):
+            plt.axvline(val, color='gray', linestyle='--', alpha=0.2)
+
+        plt.title(f"KDE Novelty Detection: {self.feature_col}")
+        plt.xlabel(self.feature_col)
+        plt.ylabel("Density")
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+
+        return fig
 

@@ -16,6 +16,10 @@ from datetime import datetime, timedelta
 
 
 import mlflow
+import os
+import matplotlib.pyplot as plt
+
+
 
 
 # ============================================================
@@ -85,6 +89,13 @@ def test_novelty_detection():
         )
 
         result = detector.fit()
+        # Get figures
+        fig1 = detector.plot_line()
+        fig2 = detector.plot_kde()
+
+        # Save to MLflow
+        mlflow.log_figure(fig1, "kde_timeseries_plot.png")
+        mlflow.log_figure(fig2, "kde_distribution_plot.png")
 
         mlflow.log_metric("n_train_samples", len(df.iloc[: -20]))
         mlflow.log_metric("n_test_samples", len(df.iloc[-20:]))
@@ -124,6 +135,13 @@ def test_outlier_detection():
         )
 
         result = detector.fit()
+        # Get figures
+        fig1 = detector.plot_line()
+        fig2 = detector.plot_kde()
+
+        # Save to MLflow
+        mlflow.log_figure(fig1, "kde_timeseries_plot.png")
+        mlflow.log_figure(fig2, "kde_distribution_plot.png")
 
         mlflow.log_metric("n_total_samples", len(df))
         mlflow.log_metric("n_anomalies_detected", len(result))
