@@ -1,10 +1,21 @@
+import os
+import sys
 import mlflow
 import pandas as pd 
-from modeling.distributed_detection_runtime.kde_ewma_runtime import (
-    FeaturewiseKDENoveltyDetector,
-    EWMAAnomalyDetector,
-)
 
+# =========================================
+# Dynamically add /src to sys.path
+# =========================================
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+SRC_PATH = os.path.join(PROJECT_ROOT, "src")
+sys.path.append(SRC_PATH)
+
+from modeling.detectors.ewma_detector import EWMAAnomalyDetector
+from modeling.detectors.kde_detector import FeaturewiseKDENoveltyDetector
+from config.feature_config import (
+    PARAMS_KDE_EWMA
+)
 from pyspark.sql.types import StructType, StructField, StringType, TimestampType, FloatType, BooleanType
 
 

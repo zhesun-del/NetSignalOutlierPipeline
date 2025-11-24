@@ -4,10 +4,12 @@ import os
 # Dynamically add /src to sys.path
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+SRC_PATH = os.path.join(PROJECT_ROOT, "src")
 
-sys.path.append(PROJECT_ROOT)
+sys.path.append(SRC_PATH)
+
 from Preprocessing.cleaning import convert_string_numerical, forward_fill,HourlyIncrementProcessor
-#from Preprocessing.feature_engineering import HourlyIncrementProcessor
+from Preprocessing.transformations import unpivot_wide_to_long, split_into_subseries
 from config.feature_config import (
     HDFS_NAMENODE,
     BASE_DIR,
@@ -15,6 +17,7 @@ from config.feature_config import (
     feature_groups,
     ALL_FEATURES,
     ZERO_LIST,
+    LOOKBACK_HOURS
 )
 
 
@@ -56,7 +59,7 @@ def run_preprocessing_test():
     file_paths = []
     now = datetime.now()
 
-    for i in range(24):
+    for i in range(LOOKBACK_HOURS):
         dt = now - timedelta(hours=i)
         path = f"{HDFS_NAMENODE}/{BASE_DIR}{dt.strftime('%Y-%m-%d')}/hr={dt.strftime('%H')}"
         file_paths.append(path)
@@ -106,6 +109,28 @@ def run_preprocessing_test():
     df_processed.show(5, truncate=False)
 
     print("\n=== Test Processing Completed ===")
+
+
+    print("\n=== 3. Testing Wide → Long Transformation ===")
+    df_long = unpivot_wide_to_long(
+        df_processed,
+        time_col=TIME_COL,
+        feature_cols=ALL_FEATURES
+    )
+    df_long.show(10, truncate=False)
+
+    print("\n=== 4. Testing Subseries Splitting ===")
+    df_slice = split_into_subseries(
+        df_processed,
+        length=200,
+        shift=1,
+        sn_col="sn",
+        time_col=TIME_COL
+    ).drop("sn")
+
+    df_slice.show(10, truncate=False)
+
+    print("\n=== End-to-End Functional Test Completed ===")
     print("End Time:", datetime.now())
 
     return df_processed
