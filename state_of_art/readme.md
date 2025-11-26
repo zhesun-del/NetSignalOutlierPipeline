@@ -140,6 +140,24 @@ In real-time anomaly detection, data is **highly time-sensitive**, and historica
 
 Thus, **Disposable or Online models** are often preferred for novelty detection.
 
+### Conclusion
+This approach builds a **temporary, disposable model** for each customer using their most recent historical data — **only when needed**.  
+It does **not maintain or store** long-term models. Instead, it **re-trains every time** you want to detect anomalies.
+
+```
+Historical Window (Training Data)                      New Point (Test)          Model Usage
+─────────────────────────────────────────────────     ──────────────────    ────────────────────────────
+1, 2, 3, ..., 98, 99, 100      ──▶ Train Model M₁ ──▶   101   → anomaly?   → M₁ DISCARDED after test
+
+2, 3, 4, ..., 99, 100, 101     ──▶ Train Model M₂ ──▶   102   → anomaly?   → M₂ DISCARDED after test
+
+3, 4, 5, ..., 100, 101, 102    ──▶ Train Model M₃ ──▶   103   → anomaly?   → M₃ DISCARDED after test
+
+4, 5, 6, ..., 101, 102, 103    ──▶ Train Model M₄ ──▶   104   → anomaly?   → M₄ DISCARDED after test
+
+... and so on — continuous sliding window detection
+
+```
 
 ---
 
@@ -150,26 +168,26 @@ Here are some concrete systems you can study and steal ideas from:
 
 - **LinkedIn – ThirdEye**
   - ThirdEye is LinkedIn’s business-wide monitoring platform for detecting anomalies in KPI time series across many products and dimensions (country, segment, experiment, etc.).  
-  - It supports multiple algorithms, automatic root cause analysis over high-cardinality dimensions, and smart alerting tuned to business sensitivity. :contentReference[oaicite:9]{index=9}  
-
+  - It supports multiple algorithms, automatic root cause analysis over high-cardinality dimensions, and smart alerting tuned to business sensitivity.
+    
 - **Uber – M3 + uVitals + alerting ecosystem**
-  - **M3**: Uber’s open-source, large-scale metrics platform used as remote storage for Prometheus; designed explicitly for multi-tenant, high-cardinality metrics (thousands of services, billions of time series). :contentReference[oaicite:10]{index=10}  
-  - **uVitals**: newer anomaly detection and alerting system specialized for multi-dimensional time-series data, working in an unsupervised fashion for service health. :contentReference[oaicite:11]{index=11}  
-  - **Observability at scale**: Uber describes how they built metrics & alerting pipelines (uMonitor, Neris) on top of this stack. :contentReference[oaicite:12]{index=12}  
+  - **M3**: Uber’s open-source, large-scale metrics platform used as remote storage for Prometheus; designed explicitly for multi-tenant, high-cardinality metrics (thousands of services, billions of time series).  
+  - **uVitals**: newer anomaly detection and alerting system specialized for multi-dimensional time-series data, working in an unsupervised fashion for service health. 
+  - **Observability at scale**: Uber describes how they built metrics & alerting pipelines (uMonitor, Neris) on top of this stack.
 
 - **Twitter / X – AnomalyDetection & S-H-ESD**
-  - Twitter’s engineering blog details how they built practical and robust anomaly detection in time series using Seasonal Hybrid ESD, including treatment of seasonal patterns and long histories. :contentReference[oaicite:13]{index=13}  
+  - Twitter’s engineering blog details how they built practical and robust anomaly detection in time series using Seasonal Hybrid ESD, including treatment of seasonal patterns and long histories. 
   - Many open-source reimplementations exist; these are widely used as baselines for metric anomaly detection.
 
 - **Grafana Labs – Prometheus + Mimir anomaly detection**
-  - Grafana Cloud runs multi-tenant metrics storage (Mimir) and has shared how they implement anomaly detection rules over Prometheus-style metrics at scale. This is very close to your “hundreds of thousands customers” case if you treat each customer × metric pair as a series. :contentReference[oaicite:14]{index=14}  
+  - Grafana Cloud runs multi-tenant metrics storage (Mimir) and has shared how they implement anomaly detection rules over Prometheus-style metrics at scale. This is very close to your “hundreds of thousands customers” case if you treat each customer × metric pair as a series. 
 
 - **Amazon – DeepAR / Amazon Forecast**
-  - DeepAR is used internally (and via Amazon Forecast) for large-scale forecasting across many SKUs / entities; anomaly detection is often implemented as “forecast + residual thresholding” on top of these models. :contentReference[oaicite:15]{index=15}  
+  - DeepAR is used internally (and via Amazon Forecast) for large-scale forecasting across many SKUs / entities; anomaly detection is often implemented as “forecast + residual thresholding” on top of these models. 
 
 - **Commercial / infra products**
-  - **StarTree ThirdEye**: productized anomaly detection and root-cause analysis for OLAP metrics (built on Apache Pinot), used by companies like Confluent and Walmart. :contentReference[oaicite:16]{index=16}  
-  - **Enterprise TS DBs & observability tools** (VictoriaMetrics Enterprise, Cortex, etc.) often ship anomaly detection and multi-tenant statistics specifically for large numbers of metric streams. :contentReference[oaicite:17]{index=17}  
+  - **StarTree ThirdEye**: productized anomaly detection and root-cause analysis for OLAP metrics (built on Apache Pinot), used by companies like Confluent and Walmart. 
+  - **Enterprise TS DBs & observability tools** (VictoriaMetrics Enterprise, Cortex, etc.) often ship anomaly detection and multi-tenant statistics specifically for large numbers of metric streams. 
 
 ---
 
@@ -179,24 +197,22 @@ Here are some concrete systems you can study and steal ideas from:
 Here are some concrete things to read / look at, mapped loosely to the options:
 
 - **Global-but-personalized time-series models (Option 5, 12)**
-  - DeepAR paper: probabilistic forecasting with a single RNN trained over many related time series; the ideas map directly to global anomaly thresholds on forecast residuals. :contentReference[oaicite:0]{index=0}  
-  - Amazon Forecast DeepAR+ docs show how this style of model is productized for multi-entity forecasting. :contentReference[oaicite:1]{index=1}  
+  - DeepAR paper: probabilistic forecasting with a single RNN trained over many related time series; the ideas map directly to global anomaly thresholds on forecast residuals. 
+  - Amazon Forecast DeepAR+ docs show how this style of model is productized for multi-entity forecasting. 
 
 - **Robust seasonal decomposition + anomaly detection (Options 1/4/7/9)**
-  - Twitter’s Seasonal Hybrid ESD (S-H-ESD) for time-series anomalies; used in their internal AnomalyDetection tool and widely replicated. :contentReference[oaicite:2]{index=2}  
-  - “Enhanced Seasonal-Hybrid ESD (SH-ESD+)” extends this idea for more robust detection, especially for long seasonal series. :contentReference[oaicite:3]{index=3}  
+  - Twitter’s Seasonal Hybrid ESD (S-H-ESD) for time-series anomalies; used in their internal AnomalyDetection tool and widely replicated.
+  - “Enhanced Seasonal-Hybrid ESD (SH-ESD+)” extends this idea for more robust detection, especially for long seasonal series.
 
 - **Multi-dimensional / multi-tenant anomaly platforms (Options 4/8/10/11)**
-  - LinkedIn’s ThirdEye: end-to-end anomaly detection, smart alerts, and root-cause for business metrics; their blogs discuss multi-dimensional metrics, grouping, and high cardinality. :contentReference[oaicite:4]{index=4}  
-  - StarTree ThirdEye (commercialization) documents how companies like Walmart and Confluent use it for business monitoring at scale. :contentReference[oaicite:5]{index=5}  
+  - LinkedIn’s ThirdEye: end-to-end anomaly detection, smart alerts, and root-cause for business metrics; their blogs discuss multi-dimensional metrics, grouping, and high cardinality. 
+  - StarTree ThirdEye (commercialization) documents how companies like Walmart and Confluent use it for business monitoring at scale.
 
 - **Streaming / metrics-focused anomaly detection (Options 7/8/10)**
-  - Grafana’s “How to use Prometheus to efficiently detect anomalies at scale” describes large-scale, explainable anomaly detection on multi-tenant metrics (using Mimir). :contentReference[oaicite:6]{index=6}  
-  - Uber’s anomaly detection platform blog (“Implementing Model-Agnosticism in Uber’s Real-Time Anomaly Detection”) describes a model-agnostic pipeline that can host multiple algorithms behind one alerting system. :contentReference[oaicite:7]{index=7}  
-
+  - Grafana’s “How to use Prometheus to efficiently detect anomalies at scale” describes large-scale, explainable anomaly detection on multi-tenant metrics (using Mimir). 
+  - Uber’s anomaly detection platform blog (“Implementing Model-Agnosticism in Uber’s Real-Time Anomaly Detection”) describes a model-agnostic pipeline that can host multiple algorithms behind one alerting system. 
 - **Federated / multi-tenant research (Option 11)**
-  - Recent work on “Federated Anomaly Detection for Multi-Tenant Cloud Environments” proposes federated detection for dynamic, high-cardinality tenants. :contentReference[oaicite:8]{index=8}  
-
+  - Recent work on “Federated Anomaly Detection for Multi-Tenant Cloud Environments” proposes federated detection for dynamic, high-cardinality tenants. 
 These are good starting points to see how your conceptual options show up in real code / systems.
 
 ---
