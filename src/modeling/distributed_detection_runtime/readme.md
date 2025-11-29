@@ -1,3 +1,5 @@
+# Spark Distributed Models with Mlflow
+
 ## Training models in parallel with Spark
 <img width="1396" height="799" alt="image" src="https://github.com/user-attachments/assets/bc608853-9e17-4b41-927b-5046b43c8b10" />
 
@@ -12,4 +14,12 @@ https://github.com/GeneSUN/spark-performance-toolbox/blob/main/Distributed_Compu
 
 ## Ensemble
 
+https://github.com/GeneSUN/Anomaly_Detection_toolkit/blob/main/README.md#3-outlier-ensembles
+
 <img width="2038" height="860" alt="image" src="https://github.com/user-attachments/assets/7780ed8b-00d4-471b-b3ff-190e2f1dc5cd" />
+
+## MLflow
+
+https://github.com/GeneSUN/mlflow_toolbox/tree/main
+
+<img width="2618" height="1014" alt="image" src="https://github.com/user-attachments/assets/4f8d133d-d00b-4a32-9ba1-73a348b79229" />
