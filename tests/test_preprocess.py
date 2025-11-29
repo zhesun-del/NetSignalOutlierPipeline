@@ -96,7 +96,7 @@ def run_preprocessing_test():
     df = df.orderBy("sn", "time")
 
     # ---------------------------------------
-    # 2. Increment & Transformation Pipeline
+    # 2. Normalization
     # ---------------------------------------
     proc = HourlyIncrementProcessor(
         df,
@@ -109,7 +109,10 @@ def run_preprocessing_test():
     df_processed.show(5, truncate=False)
 
     print("\n=== Test Processing Completed ===")
-
+    
+    # ---------------------------------------
+    # 3. Transformation/Structuring Pipeline
+    # ---------------------------------------
 
     print("\n=== 3. Testing Wide → Long Transformation ===")
     df_long = unpivot_wide_to_long(
