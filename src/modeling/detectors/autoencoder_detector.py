@@ -12,7 +12,7 @@ from pyod.models.auto_encoder_torch import AutoEncoder
 # ======================================================================
 # Classes / Functions (kept identical in content; only ordering changed)
 # ======================================================================
-class c:
+class MultiTimeSeriesAutoencoder:
     def __init__(self,
                  df: pd.DataFrame,
                  time_col: str,
