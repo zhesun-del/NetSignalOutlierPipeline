@@ -81,13 +81,17 @@ df_long.groupBy("sn", "feature").applyInPandas(...)
 
 ### 6️⃣ MLflow Tracking
 
-| Category          | Details                                                                                                           |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Parameters**    | Window size, percentiles, scaling mode, detector configs, direction (high/low)                                    |
-| **Metrics**       | `n_points`, `anomalies_detected`, true/false counts, processing time                                              |
-| **Run Hierarchy** | Nested tracking: `Experiment → SN → Feature`                                                                      |
-| **Error Logging** | Exceptions captured using `mlflow.log_param("error", ...)`                                                        |
+| Category          | Details                                                                        |
+| ----------------- | -------------------------------------------------------------------------------|
+| **Parameters**    | Window size, percentiles, scaling mode, detector configs, direction (high/low) |
+| **Metrics**       | `n_points`, `anomalies_detected`, true/false counts, processing time           |
+| **Run Hierarchy** | Nested tracking: `Experiment → SN → Feature`                                   |
+| **Error Logging** | Exceptions captured using `mlflow.log_param("error", ...)`                     |
 | **Artifacts**     | 📎 Time-series anomaly plots |
+
+<img width="753" height="654" alt="image" src="https://github.com/user-attachments/assets/c902dedf-6f39-4236-88a7-ed94960ec8fc" />
+
+<img width="1423" height="827" alt="image" src="https://github.com/user-attachments/assets/5c86e4c8-9cef-43bc-ac7a-ff7526db881a" />
 
 
 ------------------------------------------------------------------------
