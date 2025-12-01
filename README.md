@@ -1,7 +1,90 @@
-# NetSignalOutlierPipeline
-A scalable, Spark-powered anomaly detection platform for analyzing WiFi/5G network telemetry (RSRP, SNR, throughput, CQI, packet bytes). It transforms raw station logs into model-ready time series, applies statistical and deep learning-based anomaly detection models, tracks experiments with MLflow, and supports deployment for real-time and batch monitoring.
+# NetSignalOutlierPipeline: Real-Time Anomaly Detection Pipeline
+
+**Distributed Spark Processing \| MLflow Tracking \| KDE & EWMA & ARIMA Ensemble**
+
+------------------------------------------------------------------------
+
+## 🔹 Overview
+
+This pipeline performs real-time anomaly detection on network signal data using: 
+- Spark distributed computing
+- Custom preprocessing(missing handling, incremental transform, normalization)
+- KDE + EWMA + ARIMA ensemble detection
+- MLflow experiment tracking
 
 
-```shell
-./run_spark.sh tests/test_pipeline_integration.py
+<img width="1200" height="1505" alt="Untitled" src="https://github.com/user-attachments/assets/8ec85b4f-2d5e-4f71-b23a-280ddce40a6a" />
+
+------------------------------------------------------------------------
+
+## 🚀 Pipeline Flow
+
+### 1️⃣ Data Ingestion (HDFS)
+
+-   Reads hourly partitions from HDFS using rolling window.
+-   Supports dynamic path generation: `/YYYY-MM-DD/hr=HH`.
+
+### 2️⃣ Preprocessing
+
+| Step                     | Description                         |
+|--------------------------|-------------------------------------|
+| convert_string_numerical | Convert features to numeric         |
+| forward_fill             | Fill zero by SN/time      |
+| HourlyIncrementProcessor | Apply increment, log, and fill missing     |
+| orderBy                  | Ensure time-order per SN            |
+
+
+------------------------------------------------------------------------
+
+### 3️⃣ Wide → Long Format
+
+Transforms:
+
+    sn | time | RSRP | RSRQ | TotalBytes...
+
+→
+
+    sn | time | feature | value
+
+------------------------------------------------------------------------
+
+### 4️⃣ Distributed Detection (Spark)
+
+Spark `applyInPandas` performs feature-wise group-level anomaly
+detection:
+
+``` python
+df_long.groupBy("sn", "feature").applyInPandas(...)
 ```
+
+------------------------------------------------------------------------
+
+### 5️⃣ Model Ensemble
+
+| Model     | Purpose                                      |
+|-----------|----------------------------------------------|
+| KDE       | Density-based abnormal probability detection |
+| EWMA      | Detects sudden behavioral level shifts       |
+| ARIMA     | Captures temporal trend & seasonality-based anomalies |
+| Ensemble  | Flags anomaly if any model detects abnormality |
+
+------------------------------------------------------------------------
+
+### 6️⃣ MLflow Tracking
+
+| Category          | Details                                                                                                           |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Parameters**    | Window size, percentiles, scaling mode, detector configs, direction (high/low)                                    |
+| **Metrics**       | `n_points`, `anomalies_detected`, true/false counts, processing time                                              |
+| **Run Hierarchy** | Nested tracking: `Experiment → SN → Feature`                                                                      |
+| **Error Logging** | Exceptions captured using `mlflow.log_param("error", ...)`                                                        |
+| **Artifacts**     | 📎 Time-series anomaly plots |
+
+
+------------------------------------------------------------------------
+
+### 📤 Output Schema
+
+    sn | time | feature | value | is_outlier_kde | is_outlier_ewma | is_outlier_arima
+
+------------------------------------------------------------------------
