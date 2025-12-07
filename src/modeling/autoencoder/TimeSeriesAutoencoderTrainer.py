@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from pyod.models.auto_encoder_torch import AutoEncoder
 
 
-class MultiTimeSeriesAutoencoder:
+class TimeSeriesAutoencoderTrainer:
     """
     Clean modeling class (NO MLflow).
     Handles:
