@@ -1,4 +1,17 @@
 # inference_wrapper.py
+# MLflow PyFunc wrapper for Autoencoder model, tells MLflow how to load the model and make predictions
+# MLflow PyFunc requires implementing load_context and predict methods
+"""
+1. MLflow has a standard interface:
+
+class PythonModel:
+    def load_context(self, context):
+        ...
+
+    def predict(self, context, model_input):
+        ...
+We implement this interface to wrap our Autoencoder model.
+"""
 
 import mlflow.pyfunc
 import numpy as np
