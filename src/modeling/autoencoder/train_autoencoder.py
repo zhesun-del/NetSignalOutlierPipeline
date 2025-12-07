@@ -1,10 +1,20 @@
+from pyspark.sql.functions import sum, lag, col, split, concat_ws, lit ,udf,count, max,lit,avg, when,concat_ws,percentile_approx,explode
+
+from pyspark.sql import SparkSession
+from pyspark.sql.window import Window
+from pyspark.sql import functions as F
+
 # train_autoencoder.py
 
 import mlflow
 import mlflow.pyfunc
 import pandas as pd
+import  sys
+sys.path.append('/usr/apps/vmas/scripts/ZS/NetSignalOutlierPipeline/src/modeling/autoencoder') 
+
 from TimeSeriesAutoencoderTrainer import TimeSeriesAutoencoderTrainer
 from inference_wrapper import AutoencoderWrapper
+
 
 
 def train_and_log(
@@ -16,7 +26,7 @@ def train_and_log(
     scaler="standard",
     threshold_percentile=99,
 ):
-    ae = TimeSeriesAutoencoderTrainer(
+    ae = MultiTimeSeriesAutoencoder(
         df=df,
         time_col=time_col,
         feature=feature,
@@ -61,6 +71,7 @@ def train_and_log(
             artifact_path="pyfunc_model",
             python_model=AutoencoderWrapper(),
             artifacts={"autoencoder": "autoencoder.pkl"},
+            registered_model_name="Autoencoder_Anomaly_Detection"  # 👈 THIS IS NEW
         )
 
         print("Model, metrics, and plots logged to MLflow successfully.")
@@ -68,11 +79,47 @@ def train_and_log(
     return ae
 
 
+
+def read_data():
+
+    df_slice = spark.read.option("recursiveFileLookup", "true").parquet("/user/ZheS/owl_anomaly/autoencoder/data/")
+
+    pdf = df_slice.filter( col("sn")=="ACL35000028" ).filter(col("feature")=="4GRSRP").toPandas()
+
+
+
+    pdf["time"] = pd.to_datetime(pdf["time"], errors="coerce")
+    pdf["value"] = pd.to_numeric(pdf["value"], errors="coerce")
+    pdf = pdf.dropna(subset=["time", "value"]).sort_values("time").reset_index(drop=True)
+
+    return pdf
+
+
+
+LOOKBACK_DAYS = 30
+WINDOW_SIZE = 24
+OVERLAP = 0.5
+THRESHOLD_PERCENTILE = 99
+SCALER = "standard"   # or "minmax" or None
+
+
 if __name__ == "__main__":
-    df = pd.read_csv("example_timeseries.csv")
+
+    spark = (
+        SparkSession.builder
+        .appName("Autoencoder_Training")
+        .config("spark.ui.port", "24045")
+        .getOrCreate()
+    )
+    spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")    
+
+    mlflow.set_tracking_uri("http://njbbvmaspd11:5001")
+    #mlflow.set_tracking_uri("file:/usr/apps/vmas/scripts/ZS/mlflow")
+    mlflow.set_experiment("Autoencoder_Anomaly_Detection")
+    pdf=read_data()
     train_and_log(
-        df=df,
-        time_col="timestamp",
+        df=pdf[["sn","time","value","slice_id"]],
+        time_col="time",
         feature="value",
         slice_col="slice_id",
         model_params={"epochs": 10},
