@@ -3,7 +3,7 @@
 import mlflow
 import mlflow.pyfunc
 import pandas as pd
-from autoencoder import MultiTimeSeriesAutoencoder
+from TimeSeriesAutoencoderTrainer import TimeSeriesAutoencoderTrainer
 from inference_wrapper import AutoencoderWrapper
 
 
@@ -16,7 +16,7 @@ def train_and_log(
     scaler="standard",
     threshold_percentile=99,
 ):
-    ae = MultiTimeSeriesAutoencoder(
+    ae = TimeSeriesAutoencoderTrainer(
         df=df,
         time_col=time_col,
         feature=feature,
