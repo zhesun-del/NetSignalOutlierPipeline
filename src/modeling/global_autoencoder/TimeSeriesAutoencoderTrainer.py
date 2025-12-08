@@ -313,6 +313,16 @@ class TimeSeriesAutoencoderTrainer:
             },
             path,
         )
+        
+    def load_checkpoint(self, path="autoencoder.pkl"):
+        """Load previous AE model for warm-start training."""
+        import pickle
+        with open(path, "rb") as f:
+            saved = pickle.load(f)
+
+        self.model = saved["model"]      # PyTorch model
+        self.scaler = saved["scaler"]    # StandardScaler or MinMax
+        self.model_params = saved["params"]
 
     @staticmethod
     def load_model(path: str):
