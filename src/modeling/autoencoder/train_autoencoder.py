@@ -3,6 +3,8 @@ from pyspark.sql.functions import sum, lag, col, split, concat_ws, lit ,udf,coun
 from pyspark.sql import SparkSession
 from pyspark.sql.window import Window
 from pyspark.sql import functions as F
+import warnings
+warnings.filterwarnings("ignore")
 
 # train_autoencoder.py
 
@@ -26,7 +28,7 @@ def train_and_log(
     scaler="standard",
     threshold_percentile=99,
 ):
-    ae = MultiTimeSeriesAutoencoder(
+    ae = TimeSeriesAutoencoderTrainer(
         df=df,
         time_col=time_col,
         feature=feature,
@@ -72,6 +74,7 @@ def train_and_log(
             python_model=AutoencoderWrapper(),
             artifacts={"autoencoder": "autoencoder.pkl"},
             registered_model_name="Autoencoder_Anomaly_Detection"  # 👈 THIS IS NEW
+
         )
 
         print("Model, metrics, and plots logged to MLflow successfully.")
@@ -83,18 +86,22 @@ def train_and_log(
 def read_data():
 
     df_slice = spark.read.option("recursiveFileLookup", "true").parquet("/user/ZheS/owl_anomaly/autoencoder/data/")
-
     pdf = df_slice.filter( col("sn")=="ACL35000028" ).filter(col("feature")=="4GRSRP").toPandas()
-
-
 
     pdf["time"] = pd.to_datetime(pdf["time"], errors="coerce")
     pdf["value"] = pd.to_numeric(pdf["value"], errors="coerce")
     pdf = pdf.dropna(subset=["time", "value"]).sort_values("time").reset_index(drop=True)
 
-    return pdf
+    test_df = df_slice.filter( col("feature")=="4GRSRP" )\
+                        .filter( col("slice_id")=="ACN40800572_20250915175856" )\
+                        .distinct()
 
+    return pdf, test_df
 
+def convert_single_slice(df, time_col, feature):
+    pdf = df.orderBy(time_col).toPandas()
+    arr = pdf.sort_values(time_col)[feature].values
+    return arr.reshape(1, -1, 1)   # shape = (1, T, 1)
 
 LOOKBACK_DAYS = 30
 WINDOW_SIZE = 24
@@ -114,9 +121,8 @@ if __name__ == "__main__":
     spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")    
 
     mlflow.set_tracking_uri("http://njbbvmaspd11:5001")
-    #mlflow.set_tracking_uri("file:/usr/apps/vmas/scripts/ZS/mlflow")
     mlflow.set_experiment("Autoencoder_Anomaly_Detection")
-    pdf=read_data()
+    pdf, test_df = read_data()
     train_and_log(
         df=pdf[["sn","time","value","slice_id"]],
         time_col="time",
@@ -124,3 +130,17 @@ if __name__ == "__main__":
         slice_col="slice_id",
         model_params={"epochs": 10},
     )
+
+    ''' Inference Example 
+    model = mlflow.pyfunc.load_model("models:/Autoencoder_Anomaly_Detection/latest")
+
+    test_tensor = convert_single_slice(test_df, "time", "value")
+
+    result = model.predict(test_tensor)
+
+    scores = result["scores"]
+    is_outlier = result["is_outlier"]
+
+    print("Anomaly Score:", scores[0])
+    print("Is Outlier:", bool(is_outlier[0]))
+    '''
