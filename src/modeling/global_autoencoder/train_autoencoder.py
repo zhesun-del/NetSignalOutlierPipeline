@@ -91,7 +91,51 @@ def train_and_log(
 
     return ae
 
+def train_and_log_incremental(
+    df_new: pd.DataFrame,
+    time_col: str,
+    feature: str,
+    slice_col: str,
+    base_model_uri: str,    # ← this tells us which MLflow model to resume
+    model_params=None,
+    scaler="standard",
+    threshold_percentile=99,
+):
+    # 1) Download last model
+    local_path = mlflow.pyfunc.load_model(base_model_uri).artifact_path
+    checkpoint_path = local_path + "/autoencoder.pkl"
 
+    # 2) Load + initialize trainer
+    ae = TimeSeriesAutoencoderTrainer(
+        df=df_new,
+        time_col=time_col,
+        feature=feature,
+        slice_col=slice_col,
+        model_params=model_params,
+        scaler=scaler,
+        threshold_percentile=threshold_percentile,
+    )
+    ae.prepare()
+    ae.load_checkpoint(checkpoint_path)  # ← NEW
+
+    # 3) Start new run (creates v2, v3, v4…)
+    with mlflow.start_run():
+        mlflow.log_params(ae.get_params())
+
+        # 4) Continue training
+        ae.fit(epochs=5)  # add only a few more epochs, not full re-train
+
+        # 5) Log new metrics + save updated checkpoint
+        ae.save_model("autoencoder.pkl")
+        mlflow.log_artifact("autoencoder.pkl")
+
+        mlflow.pyfunc.log_model(
+            artifact_path="pyfunc_model",
+            python_model=AutoencoderWrapper(),
+            artifacts={"autoencoder": "autoencoder.pkl"},
+            registered_model_name="Autoencoder_Anomaly_Detection"
+        )
+    return ae
 
 def read_data():
 
@@ -153,4 +197,30 @@ if __name__ == "__main__":
 
     print("Anomaly Score:", scores[0])
     print("Is Outlier:", bool(is_outlier[0]))
+    '''
+
+    ''' Incremental Training Example
+    
+    ### 1. Load new week's data
+    new_week_df = load_new_week_data()     # replace with your spark read
+
+    ### 2. Get latest MLflow model
+    latest_uri = "models:/Autoencoder_Anomaly_Detection/latest"
+
+    ### 3. Incrementally train
+    train_and_log_incremental(
+        df_new=new_week_df,
+        time_col="time",
+        feature="value",
+        slice_col="slice_id",
+        base_model_uri=latest_uri,   # the key
+        model_params={"epochs": 5},
+    )
+
+    Autoencoder_Anomaly_Detection
+    v1 → full batch model
+    v2 → trained with +100k new data
+    v3 → trained with +100k new data
+    v4 → trained with +100k new data
+
     '''
