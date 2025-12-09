@@ -165,7 +165,23 @@ This module ensures that training is **reproducible, auditable, and comparable**
 
 This module provides a **clean, minimal interface for anomaly scoring** from a deployed model, independent of the training pipeline.
 
-Key responsibilities:
+The trained model is saved as `autoencoder.pkl`, you cannot directly use it for interence: because it is a custom model, and mlflow has no idea how to use it.
+Therefore, you must defin a `inference_wrapper.py`
+
+```
+pyfunc_model/
+   MLmodel
+   python_model.pkl   ← wrapper
+   autoencoder.pkl    ← your actual PyTorch model weights (inside artifacts)
+
+python_model.pkl contains your AutoencoderWrapper, which exposes:
+   .predict()
+   .load_context()
+   not .fit(), not .train(), not .optimizer, not .forward() raw access
+```
+
+
+**Key responsibilities:**
 
 #### Model Loading
 
