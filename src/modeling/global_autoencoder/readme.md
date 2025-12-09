@@ -213,16 +213,21 @@ This wrapper can be used directly in:
 
 ## Typical Deployment and Usage Patterns
 
-Although this repository mainly focuses on **training and inference logic**, the resulting models and inference wrapper can be used in multiple deployment scenarios:
+The resulting models and inference wrapper can be used in multiple deployment scenarios, this project focus on Batch Scoring.
 
-1. **Local / On-Prem MLflow Model Server**
-   - Use `mlflow models serve` or Docker to expose `/invocations` endpoint.
-   - `inference_wrapper.py` can wrap the HTTP logic or be used as a library by the API server.
+<img width="921" height="316" alt="Screenshot 2025-12-08 at 4 23 10 PM" src="https://github.com/user-attachments/assets/8833935c-36cd-4bda-8cb5-9764c74fa857" />
 
-2. **Batch and Streaming Inference**
+
+1. **Batch and Streaming Inference**
    - Use the wrapper inside:
      - PySpark jobs for daily or hourly batch scoring.
      - Spark Structured Streaming or Flink jobs for event-driven scoring and alerting.
+
+This also compatible with API access:
+
+2. **Local / On-Prem MLflow Model Server**
+   - Use `mlflow models serve` or Docker to expose `/invocations` endpoint.
+   - `inference_wrapper.py` can wrap the HTTP logic or be used as a library by the API server.
 
 
 3. **Kubernetes + Docker**
