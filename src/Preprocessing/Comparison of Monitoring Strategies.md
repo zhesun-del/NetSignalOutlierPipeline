@@ -34,9 +34,7 @@ Aggregating into hourly averages (`avg_lte_capacity`, `avg_lte_band`, `avg_4gsnr
 ## 2. Exploring Acceleration
 
 Potential strategies to accelerate real-time anomaly detection:
-
-- [**Anomaly_Detection_Toolkit** – repository overview](https://github.com/GeneSUN/Anomaly_Detection_toolkit/tree/main)  
-- [**Section 5: Multi-Models Distributed Computing**](https://github.com/GeneSUN/Anomaly_Detection_toolkit/tree/main?tab=readme-ov-file#5-multi-models-distributed-computing)
+- [**Multi-Models Distributed Computing**](https://github.com/GeneSUN/NetSignalOutlierPipeline/tree/main/src/modeling/distributed_detection_runtime)
 
 These approaches include:
 - Distributed model parallelization  
