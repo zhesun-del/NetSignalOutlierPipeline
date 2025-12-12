@@ -70,6 +70,12 @@ Step 4,5,6 are modeling, more details discussed in:
 Spark `applyInPandas` performs feature-wise group-level anomaly
 detection:
 
+```python
+spark = SparkSession.builder.appName("NetSignalDev").getOrCreate()
+sc = spark.sparkContext
+sc.addPyFile("hdfs:///libs/net_signal_pipeline.zip")
+```
+
 ``` python
 df_long.groupBy("sn", "feature").applyInPandas(...)
 ```
