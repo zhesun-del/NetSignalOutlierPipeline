@@ -91,15 +91,10 @@ Build a **anomaly detection system** that can train, evaluate, and serve autoenc
 This script is the **main entry point** for training and registering autoencoder models. Typical responsibilities:
 
 - Parse config / CLI arguments (paths, hyperparameters, run name, registry name, etc.).
-- Load the dataset (Spark DataFrame or Pandas DataFrame).
-- Apply basic filtering and splitting into train/validation sets.
+- Load the dataset (Spark DataFrame or Pandas DataFrame), and apply basic filtering and splitting into train/validation sets.
 - Instantiate `TimeSeriesAutoencoderTrainer` with:
-  - time column
-  - feature list
-  - slice identifier (e.g., `slice_id`, `sn`, `mdn_5g`, etc.)
-  - model and training parameters
-- Trigger the full training and evaluation cycle.
-- Log metrics and artifacts into MLflow.
+   - Trigger the full training and evaluation cycle.
+   - Log metrics and artifacts into MLflow.
 - Optionally register the final model into the MLflow Model Registry (e.g., under a name like `Autoencoder_Anomaly_Detection`).
 
 You can think of `train_autoencoder.py` as the **orchestration layer** for modeling and MLOps, but not for inference or serving.
