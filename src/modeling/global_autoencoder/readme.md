@@ -254,7 +254,46 @@ You can plug this into your existing Spark / MLflow / cloud ecosystem and scale 
 
 
 
-## Incremental Trainning
+## *Incremental Trainning
 
+1. within [TimeSeriesAutoencoderTrainer](https://github.com/GeneSUN/NetSignalOutlierPipeline/blob/main/src/modeling/global_autoencoder/TimeSeriesAutoencoderTrainer.py)
+
+```python
+class TimeSeriesAutoencoderTrainer:
+    ...
+    def load_checkpoint(self, path="autoencoder.pkl"):
+     """Load previous AE model for warm-start training."""
+     import pickle
+     with open(path, "rb") as f:
+         saved = pickle.load(f)
+
+     self.model = saved["model"]      # PyTorch model
+     self.scaler = saved["scaler"]    # StandardScaler or MinMax
+     self.model_params = saved["params"]
+```
+2. within [train_autoencoder.py](https://github.com/GeneSUN/NetSignalOutlierPipeline/blob/main/src/modeling/global_autoencoder/train_autoencoder.py#L119)
+```python
+    # 1) Download last model
+    local_path = mlflow.pyfunc.load_model(base_model_uri).artifact_path
+    checkpoint_path = local_path + "/autoencoder.pkl"
+
+    # 2) Load + initialize trainer
+    ae = TimeSeriesAutoencoderTrainer(
+        df=df_new,
+        ...
+    )
+    ae.load_checkpoint(checkpoint_path)  # ← NEW
+
+    # 3) Start new run (creates v2, v3, v4…)
+    with mlflow.start_run():
+        mlflow.log_params(ae.get_params())
+
+        # 4) Continue training
+        ae.fit(epochs=5)  # add only a few more epochs, not full re-train
+
+        # 5) Log new metrics + save updated checkpoint
+        ae.save_model("autoencoder.pkl")
+        mlflow.log_artifact("autoencoder.pkl")
+```
 
 <img width="489" height="588" alt="Untitled" src="https://github.com/user-attachments/assets/3e691563-de11-45e6-bab6-d077e16e68f2" />
