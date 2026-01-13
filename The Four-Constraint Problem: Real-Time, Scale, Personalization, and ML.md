@@ -80,7 +80,7 @@ Current system:
 
 ## 5) Feasibility statement (what is possible vs. not possible)
 
-**then “5-minute full cycle” is not feasible under current architecture/resources.**
+**“5-minute full cycle” is not feasible under current architecture/resources.**
 
 Given current resources, we can realistically satisfy only ~2 of the 3 constraints at once.
 
@@ -102,9 +102,8 @@ The brutal conclusion，Under real Spark + MLflow + deep learning inference:
 
 B) Customization + Large population (40M)
 - Possible direction:
-  - Simple individualized stats/rules per customer-feature
-    (rolling mean/std, quantiles, EWMA, dynamic thresholds)
-  - IQR Udf for 10 features (10 minutes, 528 seconds)  
+  - Simple individualized stats/rules per customer-feature(rolling mean/std, quantiles, EWMA, dynamic thresholds)
+  - IQR Udf for 10 features (～10 minutes, 528 seconds)  
 - Not satisfied:
   - It’s not really “machine learning” in the deep/model sense
   - More like scalable personalized analytics
